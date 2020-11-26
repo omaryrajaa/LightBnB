@@ -87,8 +87,24 @@ exports.addUser = addUser;
  * @param {string} guest_id The id of the user.
  * @return {Promise<[{}]>} A promise to the reservations.
  */
-const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+const getAllReservations = function(guestIid, limit = 10) {
+  const sqlQuery = {
+    text: `SELECT properties.*, reservations.*, avg(rating) as average_rating
+    FROM reservations
+    JOIN properties ON reservations.property_id = properties.id
+    JOIN property_reviews ON properties.id = property_reviews.property_id 
+    WHERE reservations.guest_id = $1
+    GROUP BY properties.id, reservations.id
+    ORDER BY reservations.start_date
+    LIMIT $2;`,
+    values: [guestIid, limit]
+  };
+  return pool
+    .query(sqlQuery)
+    .then((result) => result.rows)
+    .catch((error) => error);
+
+  //return getAllProperties(null, 2);
 };
 exports.getAllReservations = getAllReservations;
 
@@ -101,11 +117,17 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = function(options, limit = 10) {
-  return pool.query(`
-  SELECT * FROM properties
-  LIMIT $1
-  `, [limit])
-    .then(res => res.rows);
+  const sqlQuery = {
+    text: `
+    SELECT * FROM properties
+    LIMIT $1
+    `,
+    values: [limit]
+  };
+  return pool
+    .query(sqlQuery)
+    .then(res => res.rows)
+    .catch((error) => error);
 };
   
 
